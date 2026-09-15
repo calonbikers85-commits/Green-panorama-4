@@ -1,11 +1,21 @@
-<div align="center">
+# Green Panorama 4 v1.0.0
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Rilis perdana aplikasi warga Komplek Green Panorama 4.
 
-  <h1>Built with AI Studio</h2>
+## Fitur Utama
+- Informasi dan pengumuman warga
+- Data dan informasi lingkungan komplek
+- Forum komunikasi antarwarga
+- Informasi kegiatan warga
+- Laporan atau pengaduan lingkungan
+- Informasi fasilitas komplek
+- Profil warga
+- Tampilan sederhana, modern, dan mudah digunakan
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Tujuan
+Aplikasi ini dibuat sebagai media komunikasi dan informasi digital bagi warga Green Panorama 4 agar koordinasi lingkungan menjadi lebih cepat, mudah, dan tertata.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Status
+Versi awal / tahap pengembangan.
 
-</div>
+Terima kasih kepada seluruh warga Green Panorama 4 yang mendukung pengembangan aplikasi ini.
