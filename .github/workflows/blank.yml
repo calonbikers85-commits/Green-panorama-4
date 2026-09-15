@@ -22,32 +22,45 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # Perbaikan Utama: Menggunakan SDK bawaan GitHub Actions daripada mengunduh ulang
       - name: Setup Android SDK Environment
         run: |
           echo "ANDROID_HOME=$ANDROID_ENV_ROOT" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_ENV_ROOT" >> $GITHUB_ENV
 
+      # Perbaikan Utama: Otomatis mendeteksi folder yang berisi package.json
       - name: Install Dependencies & Capacitor
         run: |
+          if [ -f package.json ]; then
+            SUBDIR="."
+          else
+            SUBDIR=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1 | xargs dirname)
+          fi
+          echo "Project directory is $SUBDIR"
+          echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
+          
+          cd $SUBDIR
           npm install
           npm install @capacitor/core @capacitor/cli
           npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=www --confirm
 
       - name: Add Android Platform
-        run: npx cap add android
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          npx cap add android
 
       - name: Sync Code to Android Project
-        run: npx cap sync android
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          npx cap sync android
 
       - name: Build APK Mentah (Debug)
         run: |
-          cd android && ./gradlew assembleDebug
+          cd ${{ env.PROJECT_DIR }}/android && ./gradlew assembleDebug
 
       - name: Upload APK ke GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
           tag_name: v1.0.5-${{ github.run_number }}
           name: Aplikasi Warga Versi 1.0.5 (${{ github.run_number }})
           body: |
