@@ -80,51 +80,6 @@ jobs:
           rm -rf android
           npx cap add android
 
-      # PERBAIKAN MUTLAK: Mengubah PRESERVE_EXISTING menjadi FAIL_ON_PROJECT_REPOS agar cocok dengan Gradle terbaru
-      - name: Fix Gradle Repositories
-        run: |
-          cd ${{ env.PROJECT_DIR }}/android
-          
-          cat << 'EOF' > build.gradle
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.1'
-                  classpath 'com.google.gms:google-services:4.4.1'
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          task clean(type: Delete) {
-              delete rootProject.buildDir
-          }
-          EOF
-          
-          cat << 'EOF' > settings.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          include ':app'
-          EOF
-
       - name: Sync Code to Android Project
         run: |
           cd ${{ env.PROJECT_DIR }}
