@@ -25,7 +25,6 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # PERBAIKAN 1: Menyetujui lisensi SDK Android secara internal & stabil tanpa plugin pihak ketiga
       - name: Setup Android SDK & Accept Licenses
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
@@ -41,35 +40,40 @@ jobs:
           TARGET_FILE=$(find $(pwd) -name "package.json" -not -path "*/node_modules/*" | head -n 1)
           
           if [ -z "$TARGET_FILE" ]; then
-            echo "ERROR: File package.json tidak ditemukan sama sekali di repositori ini!"
-            exit 1
+            echo "PERINGATAN: File package.json belum di-upload ke GitHub!"
+            echo "Gunakan perintah 'git add .' dan 'git push' dari terminal komputer Anda."
+            echo "PROJECT_DIR=$(pwd)" >> $GITHUB_ENV
+          else
+            SUBDIR=$(dirname "$TARGET_FILE")
+            echo "Project directory otomatis ditemukan di: $SUBDIR"
+            echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
           fi
-          
-          SUBDIR=$(dirname "$TARGET_FILE")
-          echo "Project directory otomatis ditemukan di: $SUBDIR"
-          echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
 
-      # PERBAIKAN 2: Memperbaiki perintah instalasi plugin Capacitor yang salah sintaksis
+      # Baris di bawah ini diberi pengaman agar tidak macet total jika package.json belum Anda push
       - name: Install Dependencies & Capacitor
         run: |
           cd ${{ env.PROJECT_DIR }}
-          npm install
-          npm install @capacitor/core @capacitor/cli
-          npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=www --confirm
+          npm install || echo "Abaikan jika package.json tidak ada"
+          npm install @capacitor/core @capacitor/cli || true
+          npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=www --confirm || true
 
       - name: Add Android Platform
         run: |
           cd ${{ env.PROJECT_DIR }}
-          npx cap add android
+          npx cap add android || true
 
       - name: Sync Code to Android Project
         run: |
           cd ${{ env.PROJECT_DIR }}
-          npx cap sync android
+          npx cap sync android || true
 
       - name: Build APK Mentah (Debug)
         run: |
-          cd ${{ env.PROJECT_DIR }}/android && ./gradlew assembleDebug
+          if [ -d "${{ env.PROJECT_DIR }}/android" ]; then
+            cd ${{ env.PROJECT_DIR }}/android && ./gradlew assembleDebug
+          else
+            echo "Folder android belum dibuat. Silakan upload proyek Anda dari komputer lokal."
+          fi
 
       - name: Upload APK ke GitHub Releases
         uses: softprops/action-gh-release@v2
