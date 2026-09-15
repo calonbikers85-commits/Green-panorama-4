@@ -5,9 +5,6 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  create:
-    tags:
-      - v*
 
 jobs:
   build-android:
@@ -34,87 +31,52 @@ jobs:
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Memeriksa isi struktur folder repositori Anda
-        run: |
-          TARGET_FILE=$(find $(pwd) -name "package.json" -not -path "*/node_modules/*" | head -n 1)
-          if [ -z "$TARGET_FILE" ]; then
-            echo "PROJECT_DIR=$(pwd)" >> $GITHUB_ENV
-          else
-            SUBDIR=$(dirname "$TARGET_FILE")
-            echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
-          fi
-
       - name: Generate Package JSON Emergency
         run: |
-          cd ${{ env.PROJECT_DIR }}
-          if [ ! -f "package.json" ]; then
-            cat <<EOF > package.json
-            {
-              "name": "aplikasi-warga",
-              "version": "1.0.0",
-              "description": "Aplikasi Warga Green Panorama",
-              "main": "index.js",
-              "scripts": {
-                "test": "echo \"Error: no test specified\" && exit 0"
-              }
-            }
+          cat <<EOF > package.json
+          {
+            "name": "aplikasi-warga",
+            "version": "1.0.0",
+            "description": "Aplikasi Warga Green Panorama",
+            "main": "index.js"
+          }
           EOF
-          fi
 
       - name: Install Dependencies & Capacitor
         run: |
-          cd ${{ env.PROJECT_DIR }}
           npm cache clean --force
           npm install --legacy-peer-deps
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest --legacy-peer-deps
 
       - name: Generate Capacitor Config File
         run: |
-          cd ${{ env.PROJECT_DIR }}
           cat <<EOF > capacitor.config.json
           {
             "appId": "com.warga.greenpanorama",
-            "appName": "Aplikasi Warga",
+            "appName": "Green Panorama 4",
             "webDir": "public"
           }
           EOF
 
-      - name: Prepare Web Assets Directory
-        run: |
-          cd ${{ env.PROJECT_DIR }}
-          if [ ! -d "./public" ] || [ ! -f "./public/index.html" ]; then
-            mkdir -p public
-            cat <<EOF > ./public/index.html
-            <!DOCTYPE html><html><head><title>Aplikasi Warga</title></head><body><h1>Green Panorama 4</h1></body></html>
-          EOF
-          fi
-
       - name: Add Android Platform
         run: |
-          cd ${{ env.PROJECT_DIR }}
           rm -rf android
           npx cap add android
 
-      # PERINTAH KHUSUS: Mengaktifkan izin jaringan internet (Cleartext Traffic) agar Vue.js, Tailwind & Icons eksternal berfungsi normal di HP
       - name: Configure Android Network Security & Permissions
         run: |
-          cd ${{ env.PROJECT_DIR }}/android/app/src/main
-          
-          # 1. Menambahkan izin internet pada AndroidManifest.xml jika belum terdaftar
+          cd android/app/src/main
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.INTERNET" />' AndroidManifest.xml
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' AndroidManifest.xml
-          
-          # 2. Mengizinkan pemuatan aset online lewat usesCleartextTraffic
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' AndroidManifest.xml
 
       - name: Sync Code to Android Project
         run: |
-          cd ${{ env.PROJECT_DIR }}
           npx cap sync android
 
       - name: Build APK Mentah (Debug)
         run: |
-          cd ${{ env.PROJECT_DIR }}/android
+          cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
@@ -122,12 +84,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Aplikasi-Warga-APK
-          path: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload APK ke GitHub Releases
-        uses: softprops/action-gh-release@v2
-        if: github.event_name == 'create' && github.event.ref_type == 'tag'
-        with:
-          files: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
-          tag_name: ${{ github.event.ref }}
-          name: Aplikasi Warga Versi ${{ github.event.ref }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
