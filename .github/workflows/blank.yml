@@ -5,6 +5,10 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  # Fitur tambahan agar proses build APK langsung berjalan setiap kali Anda membuat tag rilis baru
+  create:
+    tags:
+      - v*
 
 jobs:
   build-android:
@@ -33,54 +37,52 @@ jobs:
 
       - name: Memeriksa isi struktur folder repositori Anda
         run: |
-          echo "--- DAFTAR FOLDER DI REPOSITORI ANDA ---"
-          ls -la
-          echo "========================================"
-          
           TARGET_FILE=$(find $(pwd) -name "package.json" -not -path "*/node_modules/*" | head -n 1)
-          
           if [ -z "$TARGET_FILE" ]; then
-            echo "PERINGATAN: File package.json belum di-upload ke GitHub!"
-            echo "Gunakan perintah 'git add .' dan 'git push' dari terminal komputer Anda."
             echo "PROJECT_DIR=$(pwd)" >> $GITHUB_ENV
           else
             SUBDIR=$(dirname "$TARGET_FILE")
-            echo "Project directory otomatis ditemukan di: $SUBDIR"
             echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
           fi
 
-      # Baris di bawah ini diberi pengaman agar tidak macet total jika package.json belum Anda push
+      # PERBAIKAN UTAMA: Memaksa instalasi library inti Android platform agar terdeteksi oleh Capacitor
       - name: Install Dependencies & Capacitor
         run: |
           cd ${{ env.PROJECT_DIR }}
-          npm install || echo "Abaikan jika package.json tidak ada"
-          npm install @capacitor/core @capacitor/cli || true
+          npm install
+          npm install @capacitor/core @capacitor/cli @capacitor/android
           npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=www --confirm || true
 
       - name: Add Android Platform
         run: |
           cd ${{ env.PROJECT_DIR }}
-          npx cap add android || true
+          # Menghapus folder android lama jika ada konflik, lalu membuat ulang platform android fresh
+          rm -rf android
+          npx cap add android
 
       - name: Sync Code to Android Project
         run: |
           cd ${{ env.PROJECT_DIR }}
-          npx cap sync android || true
+          npx cap sync android
 
+      # PERBAIKAN KEDUA: Memaksa eksekusi gradlew assembleDebug secara mutlak tanpa syarat pengecekan folder lokal
       - name: Build APK Mentah (Debug)
         run: |
-          if [ -d "${{ env.PROJECT_DIR }}/android" ]; then
-            cd ${{ env.PROJECT_DIR }}/android && ./gradlew assembleDebug
-          else
-            echo "Folder android belum dibuat. Silakan upload proyek Anda dari komputer lokal."
-          fi
+          cd ${{ env.PROJECT_DIR }}/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # PERBAIKAN KETIGA: Memastikan file APK langsung dikirim ke menu rilis utama dan halaman tab Actions (Artifacts)
+      - name: Upload APK ke GitHub Actions Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aplikasi-Warga-APK
+          path: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK ke GitHub Releases
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'create' && github.event.ref_type == 'tag'
         with:
           files: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
-          tag_name: v1.0.5-${{ github.run_number }}
-          name: Aplikasi Warga Versi 1.0.5 (${{ github.run_number }})
-          body: |
-            Build otomatis berhasil untuk versi android.
+          tag_name: ${{ github.event.ref }}
+          name: Aplikasi Warga Versi ${{ github.event.ref }}
