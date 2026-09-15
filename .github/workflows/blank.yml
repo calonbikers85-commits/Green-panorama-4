@@ -14,7 +14,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Memperbaiki typo node-node dan memperbarui ke versi 2026 yang stabil
+          node-version: '22'
 
       - name: Install Java (Android SDK Requirement)
         uses: actions/setup-java@v4
@@ -27,9 +27,9 @@ jobs:
 
       - name: Install Dependencies & Capacitor
         run: |
+          npm install
           npm install @capacitor/core @capacitor/cli
-          npm install @capacitor/android
-          npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=. --confirm
+          npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=www --confirm
 
       - name: Add Android Platform
         run: npx cap add android
@@ -45,9 +45,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: android/app/build/outputs/apk/debug/app-debug.apk
-          tag_name: v1.0.${{ github.run_number }}
-          name: Aplikasi Warga Versi 1.0.${{ github.run_number }}
+          tag_name: v1.0.5-${{ github.run_number }}
+          name: Aplikasi Warga Versi 1.0.5 (${{ github.run_number }})
           body: |
-            Halo Warga! Silakan unduh file APK di bawah ini untuk menginstal aplikasi di HP Android Anda.
+            Halo Warga! Silakan unduh file APK di bawah ini untuk menginstal aplikasi.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
