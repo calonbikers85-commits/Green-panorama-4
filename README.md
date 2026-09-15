@@ -1,4 +1,4 @@
-# Green Panorama 4 v1.0.0
+# Green Panorama 4 v1.0.6
 
 Rilis perdana aplikasi warga Komplek Green Panorama 4.
 
