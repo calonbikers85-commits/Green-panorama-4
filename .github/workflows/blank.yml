@@ -27,32 +27,48 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_ENV_ROOT" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_ENV_ROOT" >> $GITHUB_ENV
 
-      # Perbaikan Utama: Mengunci folder ke subfolder proyek secara langsung
+      # Perbaikan Utama: Memeriksa isi struktur folder repositori Anda
       - name: Install Dependencies & Capacitor
         run: |
-          cd Green-panorama-4
+          echo "=== DAFTAR FOLDER DI REPOSITORI ANDA ==="
+          ls -la
+          echo "========================================"
+          
+          # Mencari letak asli package.json tanpa memicu error dirname
+          TARGET_DIR=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1)
+          
+          if [ -z "$TARGET_DIR" ]; then
+            echo "ERROR: File package.json tidak ditemukan sama sekali di repositori ini!"
+            exit 1
+          fi
+          
+          SUBDIR=$(dirname "$TARGET_DIR")
+          echo "Project directory otomatis ditemukan di: $SUBDIR"
+          echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
+          
+          cd "$SUBDIR"
           npm install
           npm install @capacitor/core @capacitor/cli
           npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=www --confirm
 
       - name: Add Android Platform
         run: |
-          cd Green-panorama-4
+          cd ${{ env.PROJECT_DIR }}
           npx cap add android
 
       - name: Sync Code to Android Project
         run: |
-          cd Green-panorama-4
+          cd ${{ env.PROJECT_DIR }}
           npx cap sync android
 
       - name: Build APK Mentah (Debug)
         run: |
-          cd Green-panorama-4/android && ./gradlew assembleDebug
+          cd ${{ env.PROJECT_DIR }}/android && ./gradlew assembleDebug
 
       - name: Upload APK ke GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          files: Green-panorama-4/android/app/build/outputs/apk/debug/app-debug.apk
+          files: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
           tag_name: v1.0.5-${{ github.run_number }}
           name: Aplikasi Warga Versi 1.0.5 (${{ github.run_number }})
           body: |
