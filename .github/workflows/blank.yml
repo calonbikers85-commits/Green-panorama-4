@@ -2,53 +2,59 @@ name: Build APK Siap Pakai
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ] # Sesuaikan dengan nama branch utama Anda (misal: main atau master)
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Source Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-node: '20' # Sesuaikan dengan versi Node.js proyek Anda
 
-      - name: Install Java (Android SDK Requirement)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Android SDK Environment
-        run: |
-          echo "ANDROID_HOME=$ANDROID_ENV_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$ANDROID_ENV_ROOT" >> $GITHUB_ENV
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      # Perbaikan Utama: Memeriksa isi struktur folder repositori Anda
-      - name: Install Dependencies & Capacitor
+      - name: Memeriksa isi struktur folder repositori Anda
         run: |
-          echo "=== DAFTAR FOLDER DI REPOSITORI ANDA ==="
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          
+          echo "--- DAFTAR FOLDER DI REPOSITORI ANDA ---"
           ls -la
           echo "========================================"
           
           # Mencari letak asli package.json tanpa memicu error dirname
-          TARGET_DIR=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1)
+          # Menggunakan pwd agar mendapatkan full path absolut komputer runner
+          TARGET_FILE=$(find $(pwd) -name "package.json" -not -path "*/node_modules/*" | head -n 1)
           
-          if [ -z "$TARGET_DIR" ]; then
+          if [ -z "$TARGET_FILE" ]; then
             echo "ERROR: File package.json tidak ditemukan sama sekali di repositori ini!"
             exit 1
           fi
           
-          SUBDIR=$(dirname "$TARGET_DIR")
+          SUBDIR=$(dirname "$TARGET_FILE")
           echo "Project directory otomatis ditemukan di: $SUBDIR"
           echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
-          
-          cd "$SUBDIR"
+
+      - name: Install Dependencies & Capacitor
+        run: |
+          cd ${{ env.PROJECT_DIR }}
           npm install
-          npm install @capacitor/core @capacitor/cli
+          npx install @capacitor/core @capacitor/cli
           npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=www --confirm
 
       - name: Add Android Platform
@@ -67,11 +73,10 @@ jobs:
 
       - name: Upload APK ke GitHub Releases
         uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
           tag_name: v1.0.5-${{ github.run_number }}
           name: Aplikasi Warga Versi 1.0.5 (${{ github.run_number }})
           body: |
-            Halo Warga! Silakan unduh file APK di bawah ini untuk menginstal aplikasi.
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            Build otomatis berhasil untuk versi android.
