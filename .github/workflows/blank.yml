@@ -25,16 +25,16 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: 'true' # Otomatis menyetujui seluruh lisensi SDK Google
-
-      - name: Memeriksa isi struktur folder repositori Anda
+      # PERBAIKAN UTAMA: Mengganti setup-android dengan persetujuan lisensi manual yang stabil
+      - name: Setup Android SDK & Accept Licenses
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-          
+          # Otomatis menyetujui semua lisensi bawaan menggunakan sdkmanager lokal
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Memeriksa isi struktur folder repositori Anda
+        run: |
           echo "--- DAFTAR FOLDER DI REPOSITORI ANDA ---"
           ls -la
           echo "========================================"
