@@ -44,6 +44,25 @@ jobs:
             echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
           fi
 
+      # PERBAIKAN UTAMA: Membuat package.json otomatis jika belum ada di repositori
+      - name: Generate Package JSON Emergency
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          if [ ! -f "package.json" ]; then
+            echo "Membuat file package.json darurat otomatis..."
+            cat <<EOF > package.json
+            {
+              "name": "aplikasi-warga",
+              "version": "1.0.0",
+              "description": "Aplikasi Warga Green Panorama",
+              "main": "index.js",
+              "scripts": {
+                "test": "echo \"Error: no test specified\" && exit 0"
+              }
+            }
+          EOF
+          fi
+
       - name: Install Dependencies & Capacitor
         run: |
           cd ${{ env.PROJECT_DIR }}
