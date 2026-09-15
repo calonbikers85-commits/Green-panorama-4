@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Green Panorama 4</title>
-    <!-- Memanggil library tampilan dari internet -->
+    <!-- Library Tampilan -->
     <script src="https://tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cloudflare.com">
     <script src="https://jsdelivr.net"></script>
-    
-    <!-- 🟢 KABEL PENGHUBUNG: Memasang SDK Firebase agar aplikasi bisa tersambung ke Google -->
+    <!-- SDK Firebase Resmi -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
 </head>
@@ -17,7 +16,7 @@
 
     <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-md relative pb-20">
         
-        <!-- ================= LAPISAN 1: HALAMAN LOGIN ================= -->
+        <!-- HALAMAN LOGIN -->
         <div v-if="!isLoggedIn" class="p-6 pt-20">
             <div class="text-center mb-8">
                 <div class="w-20 h-20 bg-green-700 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-3xl shadow">
@@ -42,7 +41,7 @@
             </div>
         </div>
 
-        <!-- ================= LAPISAN 2: HALAMAN UTAMA (AKAN TERBUKA JIKA LOGIN SUKSES) ================= -->
+        <!-- HALAMAN UTAMA (TERBUKA SETELAH LOGIN) -->
         <div v-else class="p-4">
             <div class="bg-green-700 text-white p-4 rounded-2xl shadow-lg mb-6">
                 <h2 class="text-xl font-bold">Halo, {{ namaWarga }}!</h2>
@@ -68,7 +67,7 @@
     </div>
 
     <script>
-        // 🟢 NOMOR TELEPON AKSES: Kunci rahasia milik proyek Firebase Green Panorama 4 Anda
+        // Konfigurasi Database Firebase Green Panorama 4 Anda
         const firebaseConfig = {
           apiKey: "AIzaSyARCo6J_FEt550EGzej",
           authDomain: "://firebaseapp.com",
@@ -80,11 +79,11 @@
           databaseURL: "https://firebaseio.com"
         };
 
-        // Mengaktifkan aliran data internet antara HP dan database Google
+        // Inisialisasi Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Mengatur Logika Tombol
+        // Inisialisasi Vue.js
         new Vue({
             el: '#app',
             data: {
@@ -97,17 +96,19 @@
             methods: {
                 prosesLogin() {
                     const targetBlok = this.inputBlok.toUpperCase().trim();
+                    if (!targetBlok || !this.inputPassword) {
+                        alert("Harap isi Blok dan Password!");
+                        return;
+                    }
                     
-                    // 🟢 MENEMBAK DATA: Memeriksa data ke tabel 'warga' yang Anda buat di Firebase kemarin
                     database.ref('warga/' + targetBlok).once('value').then((snapshot) => {
                         const dataWarga = snapshot.val();
-                        
                         if (dataWarga && dataWarga.password === this.inputPassword) {
-                            this.namaWarga = dataWarga.nama; // Menarik otomatis nama "Rahmat Hidayat" dari server Firebase
+                            this.namaWarga = dataWarga.nama;
                             this.blokRumah = targetBlok;
-                            this.isLoggedIn = true;          // Portal halaman login terbuka!
+                            this.isLoggedIn = true;
                         } else {
-                            alert("Maaf, Nomor Blok atau Password Salah / Belum Terdaftar di Firebase!");
+                            alert("Nomor Blok atau Password Salah / Belum Terdaftar!");
                         }
                     }).catch((error) => {
                         alert("Gagal Terhubung ke Server: " + error.message);
