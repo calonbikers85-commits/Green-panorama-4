@@ -80,12 +80,11 @@ jobs:
           rm -rf android
           npx cap add android
 
-      # PERBAIKAN UTAMA: Memaksa Gradle menggunakan repositori Google & MavenCentral agar sukses mengunduh dependensi
+      # PERBAIKAN MUTLAK: Mengubah PRESERVE_EXISTING menjadi FAIL_ON_PROJECT_REPOS agar cocok dengan Gradle terbaru
       - name: Fix Gradle Repositories
         run: |
           cd ${{ env.PROJECT_DIR }}/android
           
-          # Memperbarui repositories di build.gradle utama
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -108,7 +107,6 @@ jobs:
           }
           EOF
           
-          # Memperbarui repositories di settings.gradle
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
@@ -118,7 +116,7 @@ jobs:
               }
           }
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.PRESERVE_EXISTING)
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories {
                   google()
                   mavenCentral()
