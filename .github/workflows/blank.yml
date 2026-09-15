@@ -14,7 +14,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-node: '20'
+          node-version: '22' # Memperbaiki typo node-node dan memperbarui ke versi 2026 yang stabil
 
       - name: Install Java (Android SDK Requirement)
         uses: actions/setup-java@v4
