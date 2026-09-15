@@ -22,11 +22,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Set up JDK 17
+      # PERBAIKAN FINAL: Menaikkan versi JDK ke 21 agar sesuai dengan Capacitor Android terbaru
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
 
       - name: Setup Android SDK & Accept Licenses
         run: |
@@ -51,7 +52,6 @@ jobs:
           npm install --legacy-peer-deps
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest --legacy-peer-deps
 
-      # PERBAIKAN 1: Memaksa pembuatan konfigurasi Capacitor statis yang bersih
       - name: Generate Capacitor Config File
         run: |
           cd ${{ env.PROJECT_DIR }}
@@ -63,15 +63,12 @@ jobs:
           }
           EOF
 
-      # PERBAIKAN 2: Mengamankan folder www dan memindahkan index.html ke target yang benar agar terdeteksi
       - name: Prepare Web Assets Directory
         run: |
           cd ${{ env.PROJECT_DIR }}
           mkdir -p www
-          # Mencari file index.html di mana pun di repositori lalu menyalinnya secara paksa ke folder www utama
           find . -name "index.html" -not -path "*/node_modules/*" -exec cp {} ./www/index.html \; || true
           
-          # Jika file index.html tetap tidak ditemukan, buat file index.html cadangan otomatis agar build tidak gagal
           if [ ! -f "./www/index.html" ]; then
             cat <<EOF > ./www/index.html
             <!DOCTYPE html><html><head><title>Aplikasi Warga</title></head><body><h1>Green Panorama 4</h1></body></html>
