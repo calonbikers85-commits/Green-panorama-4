@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Green Panorama 4 - Layanan Digital Komplek</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gp: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              500: '#22c55e',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+              dark: '#0f391e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .sos-pulse {
+      animation: pulse-red 1.5s infinite;
+    }
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+<div id="app" class="max-w-md md:max-w-4xl mx-auto min-h-screen bg-white shadow-2xl flex flex-col relative pb-20 md:pb-8">
+
+  <!-- TOP HEADER -->
+  <header class="bg-gradient-to-r from-gp-900 to-gp-700 text-white p-4 sticky top-0 z-40 shadow-md">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-white border border-white/30 text-lg">
+          <i class="fa-solid fa-tree"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-base tracking-wide flex items-center gap-2">
+            GREEN PANORAMA 4
+            <span class="text-[10px] bg-emerald-400 text-emerald-950 font-bold px-2 py-0.5 rounded-full uppercase">{{ currentRole }}</span>
+          </h1>
+          <p class="text-xs text-emerald-100">{{ currentUser ? currentUser.name + ' (' + currentUser.house + ')' : 'Portal Digital Warga' }}</p>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-2">
+        <!-- SOS Trigger Button -->
+        <button @click="openSosDialog = true" class="sos-pulse bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow">
+          <i class="fa-solid fa-triangle-exclamation"></i> SOS
+        </button>
+        <!-- Role Switcher Menu -->
+        <div class="relative">
+          <button @click="showRoleDropdown = !showRoleDropdown" class="bg-white/15 hover:bg-white/25 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-white/20 flex items-center gap-1.5">
+            <i class="fa-solid fa-user-gear"></i> Peran
+          </button>
+          <div v-if="showRoleDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 text-slate-800 text-xs">
+            <div class="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase">Ganti Hak Akses:</div>
+            <button @click="switchRole('WARGA')" class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between" :class="{'font-bold text-emerald-700 bg-emerald-50': currentRole === 'WARGA'}">
+              <span><i class="fa-solid fa-house-user w-5"></i> Warga Komplek</span>
+              <i v-if="currentRole === 'WARGA'" class="fa-solid fa-check text-emerald-600"></i>
+            </button>
+            <button @click="switchRole('SECURITY')" class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between" :class="{'font-bold text-emerald-700 bg-emerald-50': currentRole === 'SECURITY'}">
+              <span><i class="fa-solid fa-shield-halved w-5"></i> Petugas Security</span>
+              <i v-if="currentRole === 'SECURITY'" class="fa-solid fa-check text-emerald-600"></i>
+            </button>
+            <button @click="switchRole('ADMIN')" class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between" :class="{'font-bold text-emerald-700 bg-emerald-50': currentRole === 'ADMIN'}">
+              <span><i class="fa-solid fa-user-shield w-5"></i> Pengurus RW / Admin</span>
+              <i v-if="currentRole === 'ADMIN'" class="fa-solid fa-check text-emerald-600"></i>
+            </button>
+            <div class="border-t border-slate-100 my-1"></div>
+            <button @click="resetToInitialData" class="w-full text-left px-3 py-1.5 text-red-600 hover:bg-red-50">
+              <i class="fa-solid fa-rotate-right w-5"></i> Reset Data Bawaan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SOS BROADCAST ALERT BANNER (If any active) -->
+  <div v-if="activeSosList.length > 0" class="bg-red-600 text-white p-3 text-sm flex items-center justify-between animate-pulse">
+    <div class="flex items-center space-x-2">
+      <i class="fa-solid fa-bell text-lg"></i>
+      <div>
+        <span class="font-bold">DARURAT TERDETEKSI:</span> {{ activeSosList[0].category }} di {{ activeSosList[0].house }} ({{ activeSosList[0].name }})
+      </div>
+    </div>
+    <button @click="resolveSos(activeSosList[0].id)" class="bg-white text-red-700 text-xs px-3 py-1 rounded-md font-bold hover:bg-red-100">
+      Tandai Selesai
+    </button>
+  </div>
+
+  <!-- MAIN BODY CONTENT -->
+  <main class="flex-1 p-4 md:p-6 overflow-y-auto">
+
+    <!-- ======================================================== -->
+    <!-- 1. WARGA DASHBOARD -->
+    <!-- ======================================================== -->
+    <div v-if="currentRole === 'WARGA'" class="space-y-6">
+      
+      <!-- Greeting Card -->
+      <div class="bg-gradient-to-br from-gp-800 to-gp-700 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+        <div class="relative z-10">
+          <span class="text-xs uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full font-semibold">Blok {{ currentUser.house }}</span>
+          <h2 class="text-xl font-bold mt-2">Halo, {{ currentUser.name }}!</h2>
+          <p class="text-xs text-emerald-100 mt-1">Selamat datang di portal mandiri warga perumahan Green Panorama 4.</p>
+          <div class="mt-4 flex flex-wrap gap-2 text-xs">
+            <span class="bg-emerald-900/60 px-3 py-1 rounded-lg border border-white/20"><i class="fa-solid fa-car"></i> {{ currentUser.vehicle }}</span>
+            <span class="bg-emerald-900/60 px-3 py-1 rounded-lg border border-white/20"><i class="fa-solid fa-shield-check"></i> Akun Terverifikasi</span>
+          </div>
+        </div>
+        <i class="fa-solid fa-city absolute right-2 bottom-0 text-7xl text-white/10 pointer-events-none"></i>
+      </div>
+
+      <!-- Quick Action Menu -->
+      <div>
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Layanan Utama</h3>
+        <div class="grid grid-cols-4 gap-3 text-center">
+          <button @click="wargaTab = 'TAMU'" class="flex flex-col items-center p-3 rounded-2xl transition shadow-sm border" :class="wargaTab === 'TAMU' ? 'bg-emerald-50 border-gp-500 text-gp-800 font-bold' : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-700'">
+            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-gp-800 flex items-center justify-center text-xl mb-1.5"><i class="fa-solid fa-qrcode"></i></div>
+            <span class="text-[11px] leading-tight">Izin Tamu</span>
+          </button>
+          <button @click="wargaTab = 'LAPORAN'" class="flex flex-col items-center p-3 rounded-2xl transition shadow-sm border" :class="wargaTab === 'LAPORAN' ? 'bg-emerald-50 border-gp-500 text-gp-800 font-bold' : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-700'">
+            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl mb-1.5"><i class="fa-solid fa-wrench"></i></div>
+            <span class="text-[11px] leading-tight">Lapor Fasilitas</span>
+          </button>
+          <button @click="wargaTab = 'IURAN'" class="flex flex-col items-center p-3 rounded-2xl transition shadow-sm border" :class="wargaTab === 'IURAN' ? 'bg-emerald-50 border-gp-500 text-gp-800 font-bold' : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-700'">
+            <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mb-1.5"><i class="fa-solid fa-wallet"></i></div>
+            <span class="text-[11px] leading-tight">Iuran IPL</span>
+          </button>
+          <button @click="wargaTab = 'FORUM'" class="flex flex-col items-center p-3 rounded-2xl transition shadow-sm border" :class="wargaTab === 'FORUM' ? 'bg-emerald-50 border-gp-500 text-gp-800 font-bold' : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-700'">
+            <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl mb-1.5"><i class="fa-solid fa-comments"></i></div>
+            <span class="text-[11px] leading-tight">Forum</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW: IZIN TAMU (QR CODE PASS) -->
+      <div v-if="wargaTab === 'TAMU'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-qrcode text-gp-700"></i> Buat Izin Tamu Digital</h3>
+          <button @click="openAddGuestModal = true" class="bg-gp-700 hover:bg-gp-800 text-white text-xs px-3 py-2 rounded-xl font-semibold shadow">
+            + Tambah Tamu
+          </button>
+        </div>
+
+        <!-- List Passes -->
+        <div class="space-y-3">
+          <div v-for="pass in myGuestPasses" :key="pass.id" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-start space-x-3">
+              <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-xl text-slate-600">
+                <i :class="pass.vehicleType === 'Mobil' ? 'fa-solid fa-car' : 'fa-solid fa-motorcycle'"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="font-bold text-slate-900 text-sm">{{ pass.guestName }}</h4>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase"
+                        :class="{
+                          'bg-amber-100 text-amber-800': pass.status === 'MENUNGGU',
+                          'bg-emerald-100 text-emerald-800': pass.status === 'MASUK',
+                          'bg-slate-100 text-slate-600': pass.status === 'KELUAR'
+                        }">
+                    {{ pass.status }}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Kedatangan: {{ pass.date }} • {{ pass.arrivalTime }} WIB</p>
+                <p class="text-xs text-slate-600"><span class="font-medium">Kendaraan:</span> {{ pass.plateNumber || 'Jalan Kaki / Taksi' }} | Keperluan: {{ pass.purpose }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 self-end md:self-center">
+              <button @click="showQrModal(pass)" class="bg-emerald-50 hover:bg-emerald-100 text-gp-700 text-xs px-3 py-1.5 rounded-lg font-bold border border-gp-200 flex items-center gap-1">
+                <i class="fa-solid fa-qrcode"></i> Lihat QR Pass
+              </button>
+            </div>
+          </div>
+          <div v-if="myGuestPasses.length === 0" class="text-center py-8 text-slate-400 text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            Belum ada data izin tamu aktif. Klik "+ Tambah Tamu" untuk menerbitkan kode QR.
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW: LAPOR FASILITAS -->
+      <div v-if="wargaTab === 'LAPORAN'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-wrench text-blue-600"></i> Pengaduan & Kerusakan Fasilitas</h3>
+          <button @click="openAddReportModal = true" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-xl font-semibold shadow">
+            + Ajukan Laporan
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div v-for="rep in facilityReports" :key="rep.id" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">{{ rep.category }}</span>
+                <h4 class="font-bold text-slate-900 text-sm mt-1">{{ rep.title }}</h4>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase"
+                    :class="{
+                      'bg-amber-100 text-amber-800': rep.status === 'DIAJUKAN',
+                      'bg-blue-100 text-blue-800': rep.status === 'DIPROSES',
+                      'bg-emerald-100 text-emerald-800': rep.status === 'SELESAI'
+                    }">
+                {{ rep.status }}
+              </span>
+            </div>
+            <p class="text-xs text-slate-600">{{ rep.description }}</p>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+              <span><i class="fa-solid fa-location-dot"></i> {{ rep.locationBlock }}</span>
+              <span>Pelapor: {{ rep.userName }}</span>
+            </div>
+            <div v-if="rep.adminComment" class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs text-slate-700">
+              <span class="font-bold text-emerald-700">Tanggapan Pengurus:</span> {{ rep.adminComment }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW: IURAN IPL KAS -->
+      <div v-if="wargaTab === 'IURAN'" class="space-y-4">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-wallet text-amber-600"></i> Tagihan Iuran & Pembayaran IPL</h3>
+        
+        <div class="space-y-3">
+          <div v-for="bill in myBills" :key="bill.id" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <h4 class="font-bold text-slate-900 text-sm">{{ bill.title }}</h4>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase"
+                      :class="{
+                        'bg-red-100 text-red-800': bill.status === 'BELUM BAYAR',
+                        'bg-amber-100 text-amber-800': bill.status === 'MENUNGGU VERIFIKASI',
+                        'bg-emerald-100 text-emerald-800': bill.status === 'LUNAS'
+                      }">
+                  {{ bill.status }}
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">Jatuh Tempo: {{ bill.dueDate }} • Kategori: {{ bill.category }}</p>
+              <p class="text-sm font-extrabold text-gp-800 mt-1">Rp {{ formatRupiah(bill.amount) }}</p>
+            </div>
+            <div v-if="bill.status === 'BELUM BAYAR'">
+              <button @click="openPayModal(bill)" class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-4 py-2 rounded-xl font-bold shadow">
+                Bayar Sekarang
+              </button>
+            </div>
+            <div v-else-if="bill.status === 'MENUNGGU VERIFIKASI'" class="text-xs text-amber-600 italic">
+              Bukti dalam verifikasi admin
+            </div>
+            <div v-else class="text-xs text-emerald-600 font-bold flex items-center gap-1">
+              <i class="fa-solid fa-circle-check"></i> Terverifikasi Lunas
+            </div>
+          </div>
+        </div>
+
+        <!-- Transparansi Pengeluaran Kas Komplek -->
+        <div class="mt-6 bg-slate-50 rounded-2xl p-4 border border-slate-200">
+          <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-pie text-gp-700"></i> Transparansi Kas Terkini Komplek
+          </h4>
+          <div class="space-y-2">
+            <div v-for="exp in expenses.slice(0, 3)" :key="exp.id" class="bg-white p-2.5 rounded-xl border border-slate-200 text-xs flex justify-between items-center">
+              <div>
+                <p class="font-semibold text-slate-800">{{ exp.title }}</p>
+                <span class="text-[10px] text-slate-400">{{ exp.date }} • {{ exp.category }}</span>
+              </div>
+              <span class="font-bold text-red-600">-Rp {{ formatRupiah(exp.amount) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW: FORUM WARGA -->
+      <div v-if="wargaTab === 'FORUM'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-comments text-purple-600"></i> Forum Guyub Tetangga</h3>
+          <button @click="openAddPostModal = true" class="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-2 rounded-xl font-semibold shadow">
+            + Buat Postingan
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div v-for="post in forumPosts" :key="post.id" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs">
+                {{ post.userName.charAt(0) }}
+              </div>
+              <div>
+                <h5 class="text-xs font-bold text-slate-800">{{ post.userName }} <span class="text-slate-400 font-normal">({{ post.userHouse }})</span></h5>
+                <span class="text-[10px] text-slate-400">{{ post.category }}</span>
+              </div>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">{{ post.title }}</h4>
+            <p class="text-xs text-slate-600">{{ post.content }}</p>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+              <span><i class="fa-regular fa-comment"></i> {{ post.comments.length }} Komentar</span>
+              <button @click="toggleCommentBox(post)" class="text-purple-600 hover:underline font-semibold">Tanggapi</button>
+            </div>
+            <!-- Comment Section -->
+            <div v-if="post.showComments" class="bg-slate-50 rounded-xl p-3 space-y-2 text-xs">
+              <div v-for="(comm, idx) in post.comments" :key="idx" class="border-b border-slate-200 pb-1.5 last:border-b-0">
+                <span class="font-bold text-slate-800">{{ comm.userName }}:</span> {{ comm.content }}
+              </div>
+              <div class="flex gap-2 pt-1">
+                <input v-model="newCommentText" type="text" placeholder="Tulis komentar Anda..." class="flex-1 text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500">
+                <button @click="addComment(post)" class="bg-purple-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold">Kirim</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pengumuman Resmi Komplek -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-bullhorn text-gp-700"></i> Pengumuman Resmi Pengurus</h3>
+        <div class="space-y-2.5">
+          <div v-for="ann in announcements" :key="ann.id" class="p-3 rounded-xl border border-slate-100 bg-slate-50 space-y-1">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-xs text-slate-900">{{ ann.title }}</h4>
+              <span class="text-[9px] font-bold px-2 py-0.5 rounded uppercase"
+                    :class="ann.priority === 'DARURAT' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-gp-800'">
+                {{ ann.priority }}
+              </span>
+            </div>
+            <p class="text-xs text-slate-600">{{ ann.content }}</p>
+            <span class="text-[10px] text-slate-400 block">{{ ann.date }} • Oleh {{ ann.createdBy }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 2. SECURITY / PETUGAS DASHBOARD -->
+    <!-- ======================================================== -->
+    <div v-else-if="currentRole === 'SECURITY'" class="space-y-5">
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between">
+        <div>
+          <span class="text-[10px] bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded uppercase">Pos Gerbang Utama</span>
+          <h2 class="text-lg font-bold mt-1">Petugas Jaga: Slamet Riyadi</h2>
+          <p class="text-xs text-slate-300">Regu Keamanan A • Shift Siang (07:00 - 19:00 WIB)</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl text-amber-400 border border-white/10">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+      </div>
+
+      <!-- Quick Scanner Box -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-camera text-gp-700"></i> Verifikasi Kode QR Tamu</h3>
+        <p class="text-xs text-slate-500">Ketik kode pass tamu atau verifikasi kode yang tertera pada QR tamu:</p>
+        <div class="flex gap-2">
+          <input v-model="scanInputCode" type="text" placeholder="Contoh: GP4-PASS-102" class="flex-1 uppercase font-mono tracking-wider border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-gp-500 focus:outline-none">
+          <button @click="verifyPassCode" class="bg-gp-700 hover:bg-gp-800 text-white font-bold text-xs px-4 py-2 rounded-xl">
+            Periksa Pass
+          </button>
+        </div>
+      </div>
+
+      <!-- Daftar Tamu Hari Ini (Real-time Gate Control) -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-door-open text-blue-600"></i> Kontrol Keluar-Masuk Tamu</h3>
+          <span class="text-xs text-slate-400">{{ guestPasses.length }} Izin Tercatat</span>
+        </div>
+
+        <div class="space-y-3">
+          <div v-for="pass in guestPasses" :key="pass.id" class="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="font-mono text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold">{{ pass.qrCode }}</span>
+                <h4 class="font-bold text-slate-900 text-sm mt-1">{{ pass.guestName }} <span class="text-slate-500 text-xs font-normal">({{ pass.guestPhone }})</span></h4>
+                <p class="text-xs text-slate-600">Tujuan: <span class="font-bold text-gp-800">{{ pass.userName }} (Blok {{ pass.userHouse }})</span></p>
+                <p class="text-xs text-slate-500">Kendaraan: {{ pass.vehicleType }} - {{ pass.plateNumber || 'Tidak ada plat' }}</p>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase"
+                    :class="{
+                      'bg-amber-100 text-amber-800': pass.status === 'MENUNGGU',
+                      'bg-emerald-100 text-emerald-800': pass.status === 'MASUK',
+                      'bg-slate-200 text-slate-700': pass.status === 'KELUAR'
+                    }">
+                {{ pass.status }}
+              </span>
+            </div>
+            <!-- Security Action Buttons -->
+            <div class="flex gap-2 pt-2 border-t border-slate-200">
+              <button v-if="pass.status === 'MENUNGGU'" @click="updatePassStatus(pass.id, 'MASUK')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-1.5 rounded-lg">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> Tandai MASUK
+              </button>
+              <button v-if="pass.status === 'MASUK'" @click="updatePassStatus(pass.id, 'KELUAR')" class="flex-1 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs py-1.5 rounded-lg">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Tandai KELUAR
+              </button>
+              <button @click="showQrModal(pass)" class="px-3 bg-white border border-slate-300 text-slate-700 font-bold text-xs py-1.5 rounded-lg">
+                Detail QR
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buku Jurnal Patroli & Insiden -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-clipboard-list text-purple-600"></i> Mutasi Patroli Keamanan</h3>
+          <button @click="openAddIncidentModal = true" class="bg-purple-600 text-white text-xs px-3 py-1.5 rounded-xl font-bold">
+            + Catat Mutasi
+          </button>
+        </div>
+        <div class="space-y-2">
+          <div v-for="inc in incidents" :key="inc.id" class="p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-xs space-y-1">
+            <div class="flex justify-between font-bold text-slate-800">
+              <span>{{ inc.title }}</span>
+              <span class="text-slate-400 font-normal">{{ inc.time }}</span>
+            </div>
+            <p class="text-slate-600">{{ inc.notes }}</p>
+            <span class="text-[10px] text-purple-700 font-semibold">Petugas: {{ inc.officer }} | Lokasi: {{ inc.location }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 3. ADMIN / PENGURUS RW DASHBOARD -->
+    <!-- ======================================================== -->
+    <div v-else-if="currentRole === 'ADMIN'" class="space-y-5">
+      <div class="bg-gradient-to-r from-emerald-900 to-gp-800 text-white p-5 rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[10px] bg-emerald-400 text-emerald-950 font-bold px-2 py-0.5 rounded uppercase">Panel Pengurus RW 04</span>
+            <h2 class="text-lg font-bold mt-1">Bambang Sudarmono (Ketua RW)</h2>
+            <p class="text-xs text-emerald-100">Komplek Green Panorama 4 • Total 120 Rumah</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-emerald-200 block">Total Saldo Kas:</span>
+            <span class="text-xl font-extrabold text-white">Rp {{ formatRupiah(totalKas) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats Card -->
+      <div class="grid grid-cols-3 gap-3">
+        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <span class="text-xl font-extrabold text-gp-700">{{ citizens.length }}</span>
+          <p class="text-[11px] text-slate-500 font-semibold mt-0.5">Warga Terdaftar</p>
+        </div>
+        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <span class="text-xl font-extrabold text-amber-600">{{ pendingPaymentsCount }}</span>
+          <p class="text-[11px] text-slate-500 font-semibold mt-0.5">Verifikasi Iuran</p>
+        </div>
+        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <span class="text-xl font-extrabold text-blue-600">{{ pendingReportsCount }}</span>
+          <p class="text-[11px] text-slate-500 font-semibold mt-0.5">Laporan Baru</p>
+        </div>
+      </div>
+
+      <!-- Admin Tabs Navigation -->
+      <div class="flex border-b border-slate-200 overflow-x-auto text-xs font-bold gap-4">
+        <button @click="adminTab = 'WARGA'" class="pb-2 border-b-2" :class="adminTab === 'WARGA' ? 'border-gp-700 text-gp-800' : 'border-transparent text-slate-400'">Warga ({{ citizens.length }})</button>
+        <button @click="adminTab = 'KEUANGAN'" class="pb-2 border-b-2" :class="adminTab === 'KEUANGAN' ? 'border-gp-700 text-gp-800' : 'border-transparent text-slate-400'">Iuran Kas</button>
+        <button @click="adminTab = 'LAPORAN'" class="pb-2 border-b-2" :class="adminTab === 'LAPORAN' ? 'border-gp-700 text-gp-800' : 'border-transparent text-slate-400'">Fasilitas ({{ facilityReports.length }})</button>
+        <button @click="adminTab = 'PENGUMUMAN'" class="pb-2 border-b-2" :class="adminTab === 'PENGUMUMAN' ? 'border-gp-700 text-gp-800' : 'border-transparent text-slate-400'">Siaran Pengumuman</button>
+      </div>
+
+      <!-- TAB: WARGA & VERIFIKASI -->
+      <div v-if="adminTab === 'WARGA'" class="space-y-3">
+        <div class="flex justify-between items-center">
+          <h4 class="font-bold text-slate-800 text-sm">Daftar Akun Warga Komplek</h4>
+        </div>
+        <div class="space-y-2">
+          <div v-for="user in citizens" :key="user.id" class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between text-xs">
+            <div>
+              <p class="font-bold text-slate-900">{{ user.name }} <span class="text-slate-500 font-normal">({{ user.phone }})</span></p>
+              <p class="text-slate-500">Rumah: Blok {{ user.house }} | Status: {{ user.houseStatus }}</p>
+              <p class="text-slate-400 text-[10px]">Kendaraan: {{ user.vehicle }}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-2 py-0.5 rounded font-bold"
+                    :class="user.status === 'DISETUJUI' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'">
+                {{ user.status }}
+              </span>
+              <button v-if="user.status === 'MENUNGGU'" @click="approveUser(user.id)" class="bg-emerald-600 text-white font-bold px-2 py-1 rounded">
+                Setujui
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: KEUANGAN & IURAN -->
+      <div v-if="adminTab === 'KEUANGAN'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-slate-800 text-sm">Verifikasi Bukti Pembayaran Iuran</h4>
+          <button @click="openAddBillModal = true" class="bg-gp-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold">
+            + Terbitkan Tagihan Massal
+          </button>
+        </div>
+
+        <div class="space-y-2">
+          <div v-for="bill in paymentBills" :key="bill.id" class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2 text-xs">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="font-bold text-slate-900">{{ bill.userName }} (Blok {{ bill.house }})</p>
+                <p class="text-slate-500">{{ bill.title }} • Periode {{ bill.period }}</p>
+                <p class="font-extrabold text-gp-800">Rp {{ formatRupiah(bill.amount) }}</p>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase"
+                    :class="{
+                      'bg-red-100 text-red-800': bill.status === 'BELUM BAYAR',
+                      'bg-amber-100 text-amber-800': bill.status === 'MENUNGGU VERIFIKASI',
+                      'bg-emerald-100 text-emerald-800': bill.status === 'LUNAS'
+                    }">
+                {{ bill.status }}
+              </span>
+            </div>
+            <!-- Admin Verification Action -->
+            <div v-if="bill.status === 'MENUNGGU VERIFIKASI'" class="flex gap-2 pt-2 border-t border-slate-100">
+              <button @click="verifyBill(bill.id, true)" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg">
+                <i class="fa-solid fa-check"></i> Konfirmasi Lunas
+              </button>
+              <button @click="verifyBill(bill.id, false)" class="flex-1 bg-red-600 text-white font-bold py-1.5 rounded-lg">
+                <i class="fa-solid fa-xmark"></i> Tolak Bukti
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: PENGUMUMAN MASSAL -->
+      <div v-if="adminTab === 'PENGUMUMAN'" class="space-y-3">
+        <div class="flex justify-between items-center">
+          <h4 class="font-bold text-slate-800 text-sm">Siaran Pengumuman & Edaran Warga</h4>
+          <button @click="openAddAnnModal = true" class="bg-gp-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold">
+            + Buat Pengumuman
+          </button>
+        </div>
+        <div class="space-y-2">
+          <div v-for="ann in announcements" :key="ann.id" class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1 text-xs">
+            <div class="flex justify-between font-bold text-slate-900">
+              <span>{{ ann.title }}</span>
+              <span class="text-[9px] px-2 py-0.5 rounded uppercase" :class="ann.priority === 'DARURAT' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-gp-800'">{{ ann.priority }}</span>
+            </div>
+            <p class="text-slate-600">{{ ann.content }}</p>
+            <div class="flex justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+              <span>{{ ann.date }}</span>
+              <button @click="deleteAnnouncement(ann.id)" class="text-red-600 hover:underline">Hapus</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODALS & DIALOGS -->
+  <!-- ======================================================== -->
+
+  <!-- MODAL: SOS TRIGGER DIALOG -->
+  <div v-if="openSosDialog" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border-2 border-red-500">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-2">
+          <i class="fa-solid fa-triangle-exclamation animate-bounce"></i>
+        </div>
+        <h3 class="text-lg font-extrabold text-slate-900">PANGGILAN DARURAT (SOS)</h3>
+        <p class="text-xs text-slate-500">Pemberitahuan darurat akan langsung dibunyikan di Pos Security dan HP Pengurus RW.</p>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-700 block mb-1">Pilih Jenis Keadaan Darurat:</label>
+        <select v-model="sosCategory" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none">
+          <option value="Keamanan / Maling">🚨 Keamanan / Maling</option>
+          <option value="Kebakaran">🔥 Kebakaran</option>
+          <option value="Medis / Ambulans">🚑 Medis Darurat</option>
+          <option value="Kecelakaan">⚠️ Kecelakaan di Komplek</option>
+          <option value="Bencana Alam">🌊 Bencana Alam / Banjir</option>
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <button @click="openSosDialog = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl">
+          Batal
+        </button>
+        <button @click="triggerSos" class="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 rounded-xl shadow-lg">
+          BUNYIKAN ALARM
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SHOW QR PASS -->
+  <div v-if="selectedQrPass" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center space-y-4">
+      <h3 class="text-base font-bold text-slate-900">QR Pass Tamu Digital</h3>
+      <p class="text-xs text-slate-500">Tunjukkan kode QR ini ke Security di gerbang komplek:</p>
+      <div id="qrcode-box" class="flex justify-center my-2 p-3 bg-slate-50 rounded-2xl border border-slate-200"></div>
+      <div class="bg-emerald-50 text-gp-800 rounded-xl p-2 text-xs font-mono font-bold">
+        {{ selectedQrPass.qrCode }}
+      </div>
+      <div class="text-xs text-left text-slate-600 space-y-1">
+        <p><span class="font-semibold">Nama Tamu:</span> {{ selectedQrPass.guestName }}</p>
+        <p><span class="font-semibold">Tujuan:</span> Blok {{ selectedQrPass.userHouse }}</p>
+        <p><span class="font-semibold">Status:</span> {{ selectedQrPass.status }}</p>
+      </div>
+      <button @click="selectedQrPass = null" class="w-full bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl">
+        Tutup
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD GUEST PASS -->
+  <div v-if="openAddGuestModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+      <h3 class="text-sm font-bold text-slate-900">Form Izin Tamu Digital</h3>
+      <div class="space-y-2 text-xs">
+        <div>
+          <label class="font-semibold text-slate-700">Nama Tamu*</label>
+          <input v-model="newGuest.name" type="text" placeholder="Contoh: Andi Pratama" class="w-full border border-slate-300 rounded-xl p-2 mt-1 focus:ring-1 focus:ring-gp-500">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Nomor HP Tamu</label>
+          <input v-model="newGuest.phone" type="tel" placeholder="08xxxxxxxxxx" class="w-full border border-slate-300 rounded-xl p-2 mt-1">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold text-slate-700">Jenis Kendaraan</label>
+            <select v-model="newGuest.vehicleType" class="w-full border border-slate-300 rounded-xl p-2 mt-1">
+              <option>Mobil</option>
+              <option>Motor</option>
+              <option>Taksi / Online</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Plat Nomor</label>
+            <input v-model="newGuest.plate" type="text" placeholder="B 1234 ABC" class="w-full border border-slate-300 rounded-xl p-2 mt-1 uppercase">
+          </div>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Keperluan</label>
+          <input v-model="newGuest.purpose" type="text" placeholder="Silaturahmi / Kurir Paket" class="w-full border border-slate-300 rounded-xl p-2 mt-1">
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button @click="openAddGuestModal = false" class="flex-1 bg-slate-100 text-slate-700 text-xs font-bold py-2 rounded-xl">Batal</button>
+        <button @click="saveGuestPass" class="flex-1 bg-gp-700 text-white text-xs font-bold py-2 rounded-xl">Terbitkan QR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD REPORT -->
+  <div v-if="openAddReportModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+      <h3 class="text-sm font-bold text-slate-900">Ajukan Laporan Fasilitas</h3>
+      <div class="space-y-2 text-xs">
+        <div>
+          <label class="font-semibold text-slate-700">Kategori Fasilitas</label>
+          <select v-model="newReport.category" class="w-full border border-slate-300 rounded-xl p-2 mt-1">
+            <option>Lampu Jalan (PJU) Mati</option>
+            <option>Jalan Berlubang</option>
+            <option>Saluran Air / Drainase</option>
+            <option>Pengangkutan Sampah</option>
+            <option>Taman & Penghijauan</option>
+            <option>Fasilitas Lainnya</option>
+          </select>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Judul Kerusakan*</label>
+          <input v-model="newReport.title" type="text" placeholder="Contoh: Lampu PJU depan blok B-12 mati" class="w-full border border-slate-300 rounded-xl p-2 mt-1">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Rincian Lokasi</label>
+          <input v-model="newReport.location" type="text" placeholder="Contoh: Blok B dekat taman" class="w-full border border-slate-300 rounded-xl p-2 mt-1">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Deskripsi Lengkap</label>
+          <textarea v-model="newReport.description" rows="3" placeholder="Jelaskan kondisi kerusakan..." class="w-full border border-slate-300 rounded-xl p-2 mt-1"></textarea>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button @click="openAddReportModal = false" class="flex-1 bg-slate-100 text-slate-700 text-xs font-bold py-2 rounded-xl">Batal</button>
+        <button @click="saveReport" class="flex-1 bg-blue-600 text-white text-xs font-bold py-2 rounded-xl">Kirim Laporan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PAY DUES BILL -->
+  <div v-if="selectedBillToPay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+      <h3 class="text-sm font-bold text-slate-900">Pembayaran Iuran IPL</h3>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
+        <p class="font-bold text-slate-800">{{ selectedBillToPay.title }}</p>
+        <p class="text-slate-500">Nominal Transfer:</p>
+        <p class="text-base font-extrabold text-gp-800">Rp {{ formatRupiah(selectedBillToPay.amount) }}</p>
+      </div>
+      <div class="text-xs text-slate-600 space-y-1">
+        <p class="font-bold">Rekening Resmi RW 04 Green Panorama:</p>
+        <div class="bg-emerald-50 p-2.5 rounded-xl border border-gp-200 text-gp-900">
+          <p class="font-semibold">BCA: <span class="font-mono font-bold">8820-9911-3321</span></p>
+          <p class="text-[11px] text-slate-500">a.n. Kas RW 04 Green Panorama 4</p>
+        </div>
+      </div>
+      <div class="text-xs">
+        <label class="font-semibold text-slate-700">Unggah Bukti Transfer / Resi</label>
+        <input type="file" @change="handleProofUpload" class="w-full text-xs mt-1 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gp-100 file:text-gp-800 hover:file:bg-gp-200">
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button @click="selectedBillToPay = null" class="flex-1 bg-slate-100 text-slate-700 text-xs font-bold py-2 rounded-xl">Batal</button>
+        <button @click="submitPaymentProof" class="flex-1 bg-gp-700 text-white text-xs font-bold py-2 rounded-xl">Kirim Bukti</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- APPLICATION VUE LOGIC -->
+<script>
+  const { createApp } = Vue;
+
+  createApp({
+    data() {
+      return {
+        currentRole: 'WARGA', // WARGA | SECURITY | ADMIN
+        showRoleDropdown: false,
+        wargaTab: 'TAMU', // TAMU | LAPORAN | IURAN | FORUM
+        adminTab: 'WARGA', // WARGA | KEUANGAN | LAPORAN | PENGUMUMAN
+        openSosDialog: false,
+        sosCategory: 'Keamanan / Maling',
+        selectedQrPass: null,
+        openAddGuestModal: false,
+        openAddReportModal: false,
+        openAddIncidentModal: false,
+        openAddBillModal: false,
+        openAddAnnModal: false,
+        selectedBillToPay: null,
+        scanInputCode: '',
+        newCommentText: '',
+
+        // Form bindings
+        newGuest: { name: '', phone: '', vehicleType: 'Mobil', plate: '', purpose: 'Kunjungan' },
+        newReport: { category: 'Lampu Jalan (PJU) Mati', title: '', location: '', description: '' },
+
+        // Mock Current User
+        currentUser: {
+          id: 'w_01',
+          name: 'Rahmat Hidayat',
+          phone: '081311223344',
+          house: 'B-12',
+          houseStatus: 'Pemilik',
+          vehicle: 'Toyota Avanza (B 1234 GP)'
+        },
+
+        // Data Lists
+        citizens: [
+          { id: 'w_01', name: 'Rahmat Hidayat', phone: '081311223344', house: 'B-12', houseStatus: 'Pemilik', vehicle: 'Mobil B 1234 GP', status: 'DISETUJUI' },
+          { id: 'w_02', name: 'Dian Permata', phone: '081299887766', house: 'C-08', houseStatus: 'Pemilik', vehicle: 'Motor B 5678 GP', status: 'DISETUJUI' },
+          { id: 'w_03', name: 'Hendro Wijaya', phone: '081722334455', house: 'A-05', houseStatus: 'Penyewa', vehicle: 'Mobil B 9900 GP', status: 'MENUNGGU' }
+        ],
+
+        guestPasses: [
+          { id: 'gp_1', qrCode: 'GP4-PASS-101', guestName: 'Budi Santoso', guestPhone: '08123456789', vehicleType: 'Mobil', plateNumber: 'B 9876 XYZ', purpose: 'Silaturahmi', date: 'Hari Ini', arrivalTime: '14:00', userName: 'Rahmat Hidayat', userHouse: 'B-12', status: 'MENUNGGU' },
+          { id: 'gp_2', qrCode: 'GP4-PASS-102', guestName: 'Paket Kurir J&T', guestPhone: '0855123499', vehicleType: 'Motor', plateNumber: 'B 4411 ABC', purpose: 'Antar Paket', date: 'Hari Ini', arrivalTime: '10:30', userName: 'Dian Permata', userHouse: 'C-08', status: 'MASUK' }
+        ],
+
+        facilityReports: [
+          { id: 'rep_1', category: 'Lampu Jalan (PJU) Mati', title: 'Lampu PJU Blok B No 12 Mati', locationBlock: 'Blok B-12', description: 'Lampu mati sejak kemarin malam sehingga area agak gelap.', status: 'DIPROSES', userName: 'Rahmat Hidayat', adminComment: 'Teknisi dijadwalkan mengganti bohlam sore ini.' },
+          { id: 'rep_2', category: 'Jalan Berlubang', title: 'Aspal Dekat Taman Utama Retak', locationBlock: 'Taman Sentral', description: 'Retakan aspal membahayakan anak-anak bersepeda.', status: 'DIAJUKAN', userName: 'Dian Permata', adminComment: '' }
+        ],
+
+        paymentBills: [
+          { id: 'bill_1', title: 'Iuran IPL & Keamanan September 2026', period: 'September 2026', dueDate: '10 Sep 2026', category: 'IPL Bulanan', amount: 175000, status: 'BELUM BAYAR', userName: 'Rahmat Hidayat', house: 'B-12' },
+          { id: 'bill_2', title: 'Iuran IPL & Keamanan Agustus 2026', period: 'Agustus 2026', dueDate: '10 Agu 2026', category: 'IPL Bulanan', amount: 175000, status: 'LUNAS', userName: 'Rahmat Hidayat', house: 'B-12' },
+          { id: 'bill_3', title: 'Iuran IPL & Keamanan September 2026', period: 'September 2026', dueDate: '10 Sep 2026', category: 'IPL Bulanan', amount: 175000, status: 'MENUNGGU VERIFIKASI', userName: 'Dian Permata', house: 'C-08' }
+        ],
+
+        expenses: [
+          { id: 'exp_1', title: 'Gaji 4 Personil Security GP4 (Regu A & B)', amount: 9000000, date: '01 Sep 2026', category: 'Keamanan' },
+          { id: 'exp_2', title: 'Bohlam Pengganti PJU Blok B (5 unit LED Solar)', amount: 750000, date: '04 Sep 2026', category: 'Fasilitas' },
+          { id: 'exp_3', title: 'Biaya Pengangkutan Sampah Komplek', amount: 2100000, date: '05 Sep 2026', category: 'Kebersihan' }
+        ],
+
+        announcements: [
+          { id: 'ann_1', title: 'Kerja Bakti & Senam Sehat Minggu Pagi', content: 'Diadakan pada hari Minggu pukul 07.00 WIB bertempat di Taman Sentral GP4. Diharapkan partisipasi tiap rumah.', priority: 'PENTING', date: '14 Sep 2026', createdBy: 'Pengurus RW 04' },
+          { id: 'ann_2', title: 'Pengurasan & Normalisasi Saluran Air Utama', content: 'Petugas kebersihan akan melakukan pembersihan selokan sepanjang jalur Blok A-D.', priority: 'NORMAL', date: '12 Sep 2026', createdBy: 'Sie Keamanan & Kebersihan' }
+        ],
+
+        forumPosts: [
+          { id: 'p_1', userName: 'Dian Permata', userHouse: 'C-08', category: 'Saran Lingkungan', title: 'Usulan Polisi Tidur di Tikungan Blok C', content: 'Mohon pertimbangan pengurus untuk menambah pembatas kecepatan karena sering ada motor melintas kencang.', comments: [{ userName: 'Rahmat Hidayat', content: 'Setuju bu, dekat situ banyak anak kecil bermain.' }], showComments: false }
+        ],
+
+        incidents: [
+          { id: 'inc_1', title: 'Patroli Lingkungan Blok A - E', time: '02:00 WIB', location: 'Seluruh Blok GP4', notes: 'Kondisi gerbang terkunci, penerangan PJU normal, nihil hal mencurigakan.', officer: 'Slamet Riyadi' }
+        ],
+
+        activeSosList: []
+      }
+    },
+    computed: {
+      myGuestPasses() {
+        return this.guestPasses.filter(p => p.userName === this.currentUser.name);
+      },
+      myBills() {
+        return this.paymentBills.filter(b => b.userName === this.currentUser.name);
+      },
+      totalKas() {
+        const totalMasuk = 28500000;
+        const totalKeluar = this.expenses.reduce((acc, curr) => acc + curr.amount, 0);
+        return totalMasuk - totalKeluar;
+      },
+      pendingPaymentsCount() {
+        return this.paymentBills.filter(b => b.status === 'MENUNGGU VERIFIKASI').length;
+      },
+      pendingReportsCount() {
+        return this.facilityReports.filter(r => r.status === 'DIAJUKAN').length;
+      }
+    },
+    methods: {
+      switchRole(role) {
+        this.currentRole = role;
+        this.showRoleDropdown = false;
+      },
+      formatRupiah(val) {
+        return new Intl.NumberFormat('id-ID').format(val);
+      },
+      showQrModal(pass) {
+        this.selectedQrPass = pass;
+        this.$nextTick(() => {
+          const container = document.getElementById('qrcode-box');
+          if (container) {
+            container.innerHTML = '';
+            new QRCode(container, {
+              text: pass.qrCode,
+              width: 140,
+              height: 140
+            });
+          }
+        });
+      },
+      saveGuestPass() {
+        if (!this.newGuest.name) return alert('Harap isi nama tamu');
+        const idCode = 'GP4-PASS-' + Math.floor(100 + Math.random() * 900);
+        this.guestPasses.unshift({
+          id: 'gp_' + Date.now(),
+          qrCode: idCode,
+          guestName: this.newGuest.name,
+          guestPhone: this.newGuest.phone || '-',
+          vehicleType: this.newGuest.vehicleType,
+          plateNumber: this.newGuest.plate || '-',
+          purpose: this.newGuest.purpose,
+          date: 'Hari Ini',
+          arrivalTime: '15:00',
+          userName: this.currentUser.name,
+          userHouse: this.currentUser.house,
+          status: 'MENUNGGU'
+        });
+        this.openAddGuestModal = false;
+        this.newGuest = { name: '', phone: '', vehicleType: 'Mobil', plate: '', purpose: 'Kunjungan' };
+        alert('Izin tamu berhasil diterbitkan! Silakan lihat dan bagikan QR Code ke tamu.');
+      },
+      updatePassStatus(passId, newStatus) {
+        const p = this.guestPasses.find(x => x.id === passId);
+        if (p) p.status = newStatus;
+      },
+      verifyPassCode() {
+        const found = this.guestPasses.find(x => x.qrCode.toUpperCase() === this.scanInputCode.trim().toUpperCase());
+        if (found) {
+          this.showQrModal(found);
+          this.scanInputCode = '';
+        } else {
+          alert('Kode pass tidak ditemukan di sistem Green Panorama 4.');
+        }
+      },
+      saveReport() {
+        if (!this.newReport.title) return alert('Harap isi judul laporan');
+        this.facilityReports.unshift({
+          id: 'rep_' + Date.now(),
+          category: this.newReport.category,
+          title: this.newReport.title,
+          locationBlock: this.newReport.location || 'Area Komplek',
+          description: this.newReport.description || '-',
+          status: 'DIAJUKAN',
+          userName: this.currentUser.name,
+          adminComment: ''
+        });
+        this.openAddReportModal = false;
+        this.newReport = { category: 'Lampu Jalan (PJU) Mati', title: '', location: '', description: '' };
+        alert('Laporan berhasil dikirim ke pengurus!');
+      },
+      openPayModal(bill) {
+        this.selectedBillToPay = bill;
+      },
+      handleProofUpload() {
+        // Mock file upload
+      },
+      submitPaymentProof() {
+        if (this.selectedBillToPay) {
+          this.selectedBillToPay.status = 'MENUNGGU VERIFIKASI';
+          this.selectedBillToPay = null;
+          alert('Bukti transfer berhasil diunggah! Menunggu konfirmasi admin pengurus.');
+        }
+      },
+      verifyBill(billId, isApproved) {
+        const b = this.paymentBills.find(x => x.id === billId);
+        if (b) {
+          b.status = isApproved ? 'LUNAS' : 'BELUM BAYAR';
+        }
+      },
+      approveUser(userId) {
+        const u = this.citizens.find(x => x.id === userId);
+        if (u) u.status = 'DISETUJUI';
+      },
+      triggerSos() {
+        const newSos = {
+          id: 'sos_' + Date.now(),
+          category: this.sosCategory,
+          name: this.currentUser.name,
+          house: this.currentUser.house,
+          time: new Date().toLocaleTimeString('id-ID')
+        };
+        this.activeSosList.unshift(newSos);
+        this.openSosDialog = false;
+
+        // Sound synthesizer alert
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(800, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.5);
+          osc.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {}
+
+        alert('🚨 ALARM DARURAT AKTIF! Petugas Keamanan dan Pengurus RW telah menerima notifikasi lokasi Anda.');
+      },
+      resolveSos(id) {
+        this.activeSosList = this.activeSosList.filter(s => s.id !== id);
+        alert('Panggilan darurat telah ditandai selesai.');
+      },
+      toggleCommentBox(post) {
+        post.showComments = !post.showComments;
+      },
+      addComment(post) {
+        if (!this.newCommentText.trim()) return;
+        post.comments.push({
+          userName: this.currentUser.name,
+          content: this.newCommentText.trim()
+        });
+        this.newCommentText = '';
+      },
+      deleteAnnouncement(id) {
+        this.announcements = this.announcements.filter(a => a.id !== id);
+      },
+      resetToInitialData() {
+        if (confirm('Kembalikan semua data ke pengaturan awal?')) {
+          localStorage.clear();
+          location.reload();
+        }
+      }
+    },
+    mounted() {
+      // Auto-load state if saved
+      const saved = localStorage.getItem('gp4_app_state');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          Object.assign(this.$data, parsed);
+        } catch(e) {}
+      }
+      this.$watch('$data', (newVal) => {
+        localStorage.setItem('gp4_app_state', JSON.stringify({
+          guestPasses: newVal.guestPasses,
+          facilityReports: newVal.facilityReports,
+          paymentBills: newVal.paymentBills,
+          announcements: newVal.announcements,
+          forumPosts: newVal.forumPosts,
+          citizens: newVal.citizens,
+          activeSosList: newVal.activeSosList
+        }));
+      }, { deep: true });
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>
