@@ -2,7 +2,7 @@ name: Build APK Siap Pakai
 
 on:
   push:
-    branches: [ "main" ] # Sesuaikan dengan nama branch utama Anda (misal: main atau master)
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-node: '20' # Sesuaikan dengan versi Node.js proyek Anda
+          node-version: '20'
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -27,6 +27,8 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: 'true' # Otomatis menyetujui seluruh lisensi SDK Google
 
       - name: Memeriksa isi struktur folder repositori Anda
         run: |
@@ -37,8 +39,6 @@ jobs:
           ls -la
           echo "========================================"
           
-          # Mencari letak asli package.json tanpa memicu error dirname
-          # Menggunakan pwd agar mendapatkan full path absolut komputer runner
           TARGET_FILE=$(find $(pwd) -name "package.json" -not -path "*/node_modules/*" | head -n 1)
           
           if [ -z "$TARGET_FILE" ]; then
