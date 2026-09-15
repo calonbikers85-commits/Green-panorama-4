@@ -1,15 +1,53 @@
-name: Vercel Auto Deployment Check
+name: Build APK Siap Pakai
 
 on:
   push:
     branches: ["main"]
 
 jobs:
-  check-deployment:
+  build-android:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Verifikasi Status Aplikasi
-        run: echo "Aplikasi warga berhasil terhubung secara otomatis dan aman dengan Vercel!"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-node: '20'
+
+      - name: Install Java (Android SDK Requirement)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Dependencies & Capacitor
+        run: |
+          npm install @capacitor/core @capacitor/cli
+          npm install @capacitor/android
+          npx cap init "Aplikasi Warga" "com.warga.greenpanorama" --web-dir=. --confirm
+
+      - name: Add Android Platform
+        run: npx cap add android
+
+      - name: Sync Code to Android Project
+        run: npx cap sync android
+
+      - name: Build APK Mentah (Debug)
+        run: |
+          cd android && ./gradlew assembleDebug
+
+      - name: Upload APK ke GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          tag_name: v1.0.${{ github.run_number }}
+          name: Aplikasi Warga Versi 1.0.${{ github.run_number }}
+          body: |
+            Halo Warga! Silakan unduh file APK di bawah ini untuk menginstal aplikasi di HP Android Anda.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
