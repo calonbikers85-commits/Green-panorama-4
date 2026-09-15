@@ -44,12 +44,10 @@ jobs:
             echo "PROJECT_DIR=$SUBDIR" >> $GITHUB_ENV
           fi
 
-      # PERBAIKAN UTAMA: Membuat package.json otomatis jika belum ada di repositori
       - name: Generate Package JSON Emergency
         run: |
           cd ${{ env.PROJECT_DIR }}
           if [ ! -f "package.json" ]; then
-            echo "Membuat file package.json darurat otomatis..."
             cat <<EOF > package.json
             {
               "name": "aplikasi-warga",
@@ -85,7 +83,6 @@ jobs:
         run: |
           cd ${{ env.PROJECT_DIR }}
           if [ ! -d "./public" ] || [ ! -f "./public/index.html" ]; then
-            echo "PERINGATAN: Folder public tidak ditemukan, membuat folder public darurat."
             mkdir -p public
             cat <<EOF > ./public/index.html
             <!DOCTYPE html><html><head><title>Aplikasi Warga</title></head><body><h1>Green Panorama 4</h1></body></html>
@@ -97,6 +94,18 @@ jobs:
           cd ${{ env.PROJECT_DIR }}
           rm -rf android
           npx cap add android
+
+      # PERINTAH KHUSUS: Mengaktifkan izin jaringan internet (Cleartext Traffic) agar Vue.js, Tailwind & Icons eksternal berfungsi normal di HP
+      - name: Configure Android Network Security & Permissions
+        run: |
+          cd ${{ env.PROJECT_DIR }}/android/app/src/main
+          
+          # 1. Menambahkan izin internet pada AndroidManifest.xml jika belum terdaftar
+          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.INTERNET" />' AndroidManifest.xml
+          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' AndroidManifest.xml
+          
+          # 2. Mengizinkan pemuatan aset online lewat usesCleartextTraffic
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' AndroidManifest.xml
 
       - name: Sync Code to Android Project
         run: |
